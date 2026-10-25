@@ -19,7 +19,7 @@ class InitialDestribution:
         inner_offset: float,
         outer_offset: float
     ) -> List[float]:
-        raise Exception('Not implemented')
+        raise NotImplementedError()
     
     def _value(self, coef: List[float]) -> Callable[[float], float]:
         def implementation(coord: float) -> float:
