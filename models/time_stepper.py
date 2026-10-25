@@ -2,7 +2,7 @@ class TimeStepper:
     def step(self):
         raise NotImplementedError()
 
-class StaticTimeStepper:
+class StaticTimeStepper(TimeStepper):
     def __init__(self, delta: float):
         self._delta = delta
 

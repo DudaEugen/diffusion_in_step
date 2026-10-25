@@ -1,7 +1,12 @@
 import math
 import sys
 from constants.geometry import Geometry
-from models.initial_destribution import CilindricDestribution, PlainDestribution, SphericalDestribution
+from models.initial_destribution import (
+    CilindricDestribution,
+    PlainDestribution,
+    SphericalDestribution,
+    InitialDestribution
+)
 from models.state import State
 from models.time_stepper import StaticTimeStepper
 from parameters.substances import diffusion_coefficients
@@ -16,12 +21,19 @@ from parameters.values import (
     delta_time,
     temperature
 )
-from resolver import PlainResolver, CilindricResolver, SphericalResolver
-
+from resolver import (
+    Resolver,
+    PlainResolver,
+    CilindricResolver,
+    SphericalResolver
+)
 
 time_stepper = StaticTimeStepper(delta_time)
 
 geometry: Geometry = Geometry.CILINDRIC
+
+initial_destribution: InitialDestribution
+resolver: Resolver
 
 if Geometry.PLAIN.value in sys.argv:
     geometry = Geometry.PLAIN

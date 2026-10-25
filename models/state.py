@@ -28,15 +28,17 @@ class State:
         self.delta = delta
         self.temperature = temperature
 
-        concentration1 = [1 for _ in range(round((border_coordinate - initial_destribution.inner_offset)/self.delta))]
+        concentration1 = [1. for _ in range(round((border_coordinate - initial_destribution.inner_offset)/self.delta))]
         concentration1.extend(initial_destribution.generate(delta=self.delta, border_coordinate=border_coordinate))
-        concentration1.extend([0 for _ in range(node_count - len(concentration1))])
+        concentration1.extend([.0 for _ in range(node_count - len(concentration1))])
 
-        concentration2 = [0 for _ in range(round((border_coordinate - initial_destribution.inner_offset)/self.delta))]
+        concentration2 = [.0 for _ in range(round((border_coordinate - initial_destribution.inner_offset)/self.delta))]
         concentration2.extend(initial_destribution.generate_reversed(self.delta, border_coordinate))
-        concentration2.extend([1 for _ in range(node_count - len(concentration2))])
+        concentration2.extend([1. for _ in range(node_count - len(concentration2))])
         
         self.concentration1 = list(map(lambda c: c*inner_substance.concentration, concentration1))
         self.concentration2 = list(map(lambda c: c*outer_substance.concentration, concentration2))
 
-        self.diffusion_coefficients = list(map(lambda c: c.set_temperature(self.temperature) or c, diffusion_coefficients))
+        self.diffusion_coefficients = diffusion_coefficients
+        for coefficient in self.diffusion_coefficients:
+            coefficient.set_temperature(self.temperature)
