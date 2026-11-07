@@ -11,3 +11,6 @@ class Substance(NamedTuple):
     @property
     def concentration(self) -> float:
         return avogadro_constant * self.density / self.atomic_weight
+
+    def __str__(self) -> str:
+        return str(self.name)

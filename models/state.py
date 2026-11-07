@@ -9,8 +9,6 @@ class State:
     substance2: Substance
     concentration2: List[float]
     delta: float
-    temperature: float
-    diffusion_coefficients: List[DiffusionCoefficient]
 
     def __init__(
         self,
@@ -20,13 +18,10 @@ class State:
         node_count: int,
         border_coordinate: float,
         initial_destribution: InitialDestribution,
-        temperature: float,
-        diffusion_coefficients: List[DiffusionCoefficient] 
     ):
         self.substance1 = inner_substance
         self.substance2 = outer_substance
         self.delta = delta
-        self.temperature = temperature
 
         concentration1 = [1. for _ in range(round((border_coordinate - initial_destribution.inner_offset)/self.delta))]
         concentration1.extend(initial_destribution.generate(delta=self.delta, border_coordinate=border_coordinate))
@@ -39,6 +34,8 @@ class State:
         self.concentration1 = list(map(lambda c: c*inner_substance.concentration, concentration1))
         self.concentration2 = list(map(lambda c: c*outer_substance.concentration, concentration2))
 
-        self.diffusion_coefficients = diffusion_coefficients
-        for coefficient in self.diffusion_coefficients:
-            coefficient.set_temperature(self.temperature)
+    def __str__(self) -> str:
+        lines = ['\t'.join(["r", self.substance1.name.value, self.substance2.name.value])]
+        for index, [c1, c2] in enumerate(zip(self.concentration1, self.concentration2)):
+            lines.append('\t'.join([str(index*self.delta), str(c1), str(c2)]))
+        return '\n'.join(lines)

@@ -12,3 +12,8 @@ size = 2*border_coordinate
 
 delta_coordinate = 1e-5
 delta_time = 1e-5
+
+stop_time = 1e5
+
+log_period = 1e-3
+file_prefix='state'
