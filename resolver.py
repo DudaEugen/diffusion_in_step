@@ -6,11 +6,7 @@ from models.state import State
 from models.timer import Timer
 from utils.finite_differences import (
     FiniteDerivative,
-    first_derivative_backward_order2,
     first_derivative_central,
-    first_derivative_forward_order2,
-    second_derivative_backward_order2,
-    second_derivative_forward_order2,
     second_derivative_central,
 )
 
@@ -68,17 +64,11 @@ class PlainResolver(Resolver):
         for i in range(len(local_concentration)):
             local_concentrations = { name: v[i] for name, v in concentrations.items()}
             diffusion_coefficients.append(self.diffusion_coefficient.calculate(local_concentrations, sub))
-        for i in range(len(local_concentration)):
+        for i in range(1, len(local_concentration) - 1):
             growth = .0 
 
             first_derivative: FiniteDerivative = first_derivative_central
             second_derivative: FiniteDerivative = second_derivative_central
-            if i == len(local_concentration) - 1:
-                first_derivative = first_derivative_backward_order2
-                second_derivative = second_derivative_backward_order2
-            elif i == 0:
-                first_derivative = first_derivative_forward_order2
-                second_derivative = second_derivative_forward_order2
             growth += diffusion_coefficients[i] * self.timer.step()*second_derivative(local_concentration, i, self.state.delta)
 
             if not self.diffusion_coefficient.is_static():
@@ -87,6 +77,8 @@ class PlainResolver(Resolver):
                     first_derivative(diffusion_coefficients, i, self.state.delta)
 
             result.append(growth + local_concentration[i])
+        result.insert(0, (4*result[0]-result[1])/3)
+        result.append((4*result[-1]-result[-2])/3)
         return result
 
 class CilindricResolver(Resolver):
@@ -97,14 +89,11 @@ class CilindricResolver(Resolver):
         for i in range(len(local_concentration)):
             local_concentrations = { name: v[i] for name, v in concentrations.items()}
             diffusion_coefficients.append(self.diffusion_coefficient.calculate(local_concentrations, sub))
-        for i in range(len(local_concentration)):
+        for i in range(len(local_concentration)-1):
             growth = .0
             first_derivative: FiniteDerivative = first_derivative_central
             second_derivative: FiniteDerivative = second_derivative_central
-            if i == len(local_concentration) - 1:
-                first_derivative = first_derivative_backward_order2
-                second_derivative = second_derivative_backward_order2
-            elif i == 0:
+            if i == 0:
                 second_derivative = lambda c, i, d: 4*(c[i + 1] - c[i])/pow(d, 2)
 
             if i != 0:
@@ -118,6 +107,7 @@ class CilindricResolver(Resolver):
                     first_derivative(diffusion_coefficients, i, self.state.delta)
 
             result.append(growth + local_concentration[i])
+        result.append((4*result[-1]-result[-2])/3)
         return result
 
 class SphericalResolver(Resolver):
@@ -128,14 +118,11 @@ class SphericalResolver(Resolver):
         for i in range(len(local_concentration)):
                 local_concentrations = { name: v[i] for name, v in concentrations.items()}
                 diffusion_coefficients.append(self.diffusion_coefficient.calculate(local_concentrations, sub))
-        for i in range(len(local_concentration)):
+        for i in range(len(local_concentration) - 1):
             growth = .0        
             first_derivative: FiniteDerivative = first_derivative_central
             second_derivative: FiniteDerivative = second_derivative_central
-            if i == len(local_concentration) - 1:
-                first_derivative = first_derivative_backward_order2
-                second_derivative = second_derivative_backward_order2
-            elif i == 0:
+            if i == 0:
                 second_derivative = lambda c, i, d: 6*(c[i + 1] - c[i])/pow(d, 2)
 
             if i != 0:
@@ -149,4 +136,5 @@ class SphericalResolver(Resolver):
                     first_derivative(diffusion_coefficients, i, self.state.delta)
 
             result.append(growth + local_concentration[i])
+        result.append((4*result[-1]-result[-2])/3)
         return result
