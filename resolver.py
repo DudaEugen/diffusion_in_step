@@ -44,14 +44,20 @@ class Resolver:
     def _face_fluxes(self, concentration: List[float], coefficients: List[float]) -> List[float]:
         delta = self.state.delta
         return [
+            # Zero flux at the isolated boundaries.
             0.0,
             *(
-                0.5 * (coefficients[i] + coefficients[i + 1])
+                self._harmonic_mean(coefficients[i], coefficients[i + 1])
                 * (concentration[i + 1] - concentration[i]) / delta
                 for i in range(len(concentration) - 1)
             ),
             0.0,
         ]
+
+    @staticmethod
+    def _harmonic_mean(left: float, right: float) -> float:
+        # Represents the combined diffusion resistance across a face.
+        return 2 * left * right / (left + right)
 
     def _flux_divergence(self, face_fluxes: List[float], index: int) -> float:
         raise NotImplementedError()
@@ -76,6 +82,7 @@ class Resolver:
 class PlainResolver(Resolver):
     def _flux_divergence(self, face_fluxes: List[float], index: int) -> float:
         delta = self.state.delta
+        # Boundary nodes have half-width control volumes.
         volume_width = delta / 2 if index in (0, len(face_fluxes) - 2) else delta
         return (face_fluxes[index + 1] - face_fluxes[index]) / volume_width
 
@@ -87,9 +94,12 @@ class _RadialResolver(Resolver):
         delta = self.state.delta
         radius = index * delta
         left_radius = max(0.0, radius - delta / 2)
-        right_radius = radius + delta / 2
+        # The last node lies on the physical outer boundary, so its control
+        # volume ends at that radius instead of extending half a step outward.
+        right_radius = radius if index == len(face_fluxes) - 2 else radius + delta / 2
         power = self.radial_power
         shell_measure = right_radius ** (power + 1) - left_radius ** (power + 1)
+        # Surface-area factors give the radial form of div(D grad(C)).
         return (power + 1) * (
             right_radius**power * face_fluxes[index + 1]
             - left_radius**power * face_fluxes[index]

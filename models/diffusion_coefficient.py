@@ -20,6 +20,7 @@ class DiffusionCoefficient:
         self._value = self._calculate_value()
 
     def _calculate_value(self) -> float:
+        # Arrhenius relation
         return self._factor*exp(
             -self._activation_energy/(universal_gas_constant*self.temperature)
         )

@@ -23,6 +23,7 @@ class State:
         self.substance2 = outer_substance
         self.delta = delta
 
+        # Build complementary composition profiles, then convert fractions to number concentrations.
         concentration1 = [1. for _ in range(round((border_coordinate - initial_destribution.inner_offset)/self.delta))]
         concentration1.extend(initial_destribution.generate(delta=self.delta, border_coordinate=border_coordinate))
         concentration1.extend([.0 for _ in range(node_count - len(concentration1))])

@@ -22,6 +22,7 @@ class InitialDestribution:
         raise NotImplementedError()
     
     def _value(self, coef: List[float]) -> Callable[[float], float]:
+        # Coefficients are ordered by ascending polynomial power.
         def implementation(coord: float) -> float:
             return sum(map(lambda c, i: c*coord**i, coef, range(len(coef))))
         return implementation
