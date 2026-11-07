@@ -1,14 +1,11 @@
 from typing import Dict, List
+
 from constants.substance_names import SubstanceName
 from models.effective_diffusion_coefficient import EffectiveDiffusionCoefficient
 from models.logger import PeriodicLogger
 from models.state import State
 from models.timer import Timer
-from utils.finite_differences import (
-    FiniteDerivative,
-    first_derivative_central,
-    second_derivative_central,
-)
+
 
 class Resolver:
     state: State
@@ -21,120 +18,87 @@ class Resolver:
         state: State,
         timer: Timer,
         diffusion_coefficient_resolver: EffectiveDiffusionCoefficient,
-        logger: PeriodicLogger
+        logger: PeriodicLogger,
     ):
         self.state = state
         self.timer = timer
         self.diffusion_coefficient = diffusion_coefficient_resolver
         self.logger = logger
 
-    def _calculate_new_concentrations(self, concentrations: Dict[SubstanceName, List[float]], sub: SubstanceName) -> List[float]:
+    def _calculate_new_concentrations(
+        self, concentrations: Dict[SubstanceName, List[float]], sub: SubstanceName
+    ) -> List[float]:
+        concentration = concentrations[sub]
+        coefficients = [
+            self.diffusion_coefficient.calculate(
+                {name: values[i] for name, values in concentrations.items()}, sub
+            )
+            for i in range(len(concentration))
+        ]
+        face_fluxes = self._face_fluxes(concentration, coefficients)
+        return [
+            value + self.timer.step() * self._flux_divergence(face_fluxes, i)
+            for i, value in enumerate(concentration)
+        ]
+
+    def _face_fluxes(self, concentration: List[float], coefficients: List[float]) -> List[float]:
+        delta = self.state.delta
+        return [
+            0.0,
+            *(
+                0.5 * (coefficients[i] + coefficients[i + 1])
+                * (concentration[i + 1] - concentration[i]) / delta
+                for i in range(len(concentration) - 1)
+            ),
+            0.0,
+        ]
+
+    def _flux_divergence(self, face_fluxes: List[float], index: int) -> float:
         raise NotImplementedError()
 
     def run(self) -> None:
         while self.timer.next():
             self.logger.info(self.timer, self.state)
+            concentrations = {
+                self.state.substance1.name: self.state.concentration1,
+                self.state.substance2.name: self.state.concentration2,
+            }
+            new_concentration1 = self._calculate_new_concentrations(
+                concentrations, self.state.substance1.name
+            )
+            new_concentration2 = self._calculate_new_concentrations(
+                concentrations, self.state.substance2.name
+            )
+            self.state.concentration1[:] = new_concentration1
+            self.state.concentration2[:] = new_concentration2
 
-            new_concentration1: List[float] = []
-            new_concentration2: List[float] = []
-            concentrations = [
-                (self.state.concentration1, self.state.concentration2, new_concentration1, self.state.substance1, self.state.substance2),
-                (self.state.concentration2, self.state.concentration1, new_concentration2, self.state.substance2, self.state.substance1)
-            ]
-            for concentration, other, new, substance, other_substance in concentrations:
-                updated = self._calculate_new_concentrations(
-                    {
-                        substance.name: concentration,
-                        other_substance.name: other,
-                    },
-                    sub=substance.name
-                )
-                new.clear()
-                new.extend(updated)
-            self.state.concentration1.clear()
-            self.state.concentration1.extend(new_concentration1)
-            self.state.concentration2.clear()
-            self.state.concentration2.extend(new_concentration2)
 
 class PlainResolver(Resolver):
-    def _calculate_new_concentrations(self, concentrations: Dict[SubstanceName, List[float]], sub: SubstanceName) -> List[float]:
-        result: List[float] = []
-        local_concentration = concentrations[sub]
-        diffusion_coefficients: List[float] = []
-        for i in range(len(local_concentration)):
-            local_concentrations = { name: v[i] for name, v in concentrations.items()}
-            diffusion_coefficients.append(self.diffusion_coefficient.calculate(local_concentrations, sub))
-        for i in range(1, len(local_concentration) - 1):
-            growth = .0 
+    def _flux_divergence(self, face_fluxes: List[float], index: int) -> float:
+        delta = self.state.delta
+        volume_width = delta / 2 if index in (0, len(face_fluxes) - 2) else delta
+        return (face_fluxes[index + 1] - face_fluxes[index]) / volume_width
 
-            first_derivative: FiniteDerivative = first_derivative_central
-            second_derivative: FiniteDerivative = second_derivative_central
-            growth += diffusion_coefficients[i] * self.timer.step()*second_derivative(local_concentration, i, self.state.delta)
 
-            if not self.diffusion_coefficient.is_static():
-                growth += self.timer.step()*\
-                    first_derivative(local_concentration, i, self.state.delta)*\
-                    first_derivative(diffusion_coefficients, i, self.state.delta)
+class _RadialResolver(Resolver):
+    radial_power: int
 
-            result.append(growth + local_concentration[i])
-        result.insert(0, (4*result[0]-result[1])/3)
-        result.append((4*result[-1]-result[-2])/3)
-        return result
+    def _flux_divergence(self, face_fluxes: List[float], index: int) -> float:
+        delta = self.state.delta
+        radius = index * delta
+        left_radius = max(0.0, radius - delta / 2)
+        right_radius = radius + delta / 2
+        power = self.radial_power
+        shell_measure = right_radius ** (power + 1) - left_radius ** (power + 1)
+        return (power + 1) * (
+            right_radius**power * face_fluxes[index + 1]
+            - left_radius**power * face_fluxes[index]
+        ) / shell_measure
 
-class CilindricResolver(Resolver):
-    def _calculate_new_concentrations(self, concentrations: Dict[SubstanceName, List[float]], sub: SubstanceName) -> List[float]:
-        result: List[float] = []
-        local_concentration = concentrations[sub]
-        diffusion_coefficients: List[float] = []
-        for i in range(len(local_concentration)):
-            local_concentrations = { name: v[i] for name, v in concentrations.items()}
-            diffusion_coefficients.append(self.diffusion_coefficient.calculate(local_concentrations, sub))
-        for i in range(len(local_concentration)-1):
-            growth = .0
-            first_derivative: FiniteDerivative = first_derivative_central
-            second_derivative: FiniteDerivative = second_derivative_central
-            if i == 0:
-                second_derivative = lambda c, i, d: 4*(c[i + 1] - c[i])/pow(d, 2)
 
-            if i != 0:
-                growth += first_derivative(local_concentration, i, self.state.delta)/(i*self.state.delta)
-            growth += second_derivative(local_concentration, i, self.state.delta)
-            growth *= diffusion_coefficients[i] * self.timer.step()
+class CilindricResolver(_RadialResolver):
+    radial_power = 1
 
-            if not self.diffusion_coefficient.is_static() and i !=0:
-                growth += self.timer.step()*\
-                    first_derivative(local_concentration, i, self.state.delta)*\
-                    first_derivative(diffusion_coefficients, i, self.state.delta)
 
-            result.append(growth + local_concentration[i])
-        result.append((4*result[-1]-result[-2])/3)
-        return result
-
-class SphericalResolver(Resolver):
-    def _calculate_new_concentrations(self, concentrations: Dict[SubstanceName, List[float]], sub: SubstanceName) -> List[float]:
-        result: List[float] = []
-        local_concentration = concentrations[sub]
-        diffusion_coefficients: List[float] = []
-        for i in range(len(local_concentration)):
-                local_concentrations = { name: v[i] for name, v in concentrations.items()}
-                diffusion_coefficients.append(self.diffusion_coefficient.calculate(local_concentrations, sub))
-        for i in range(len(local_concentration) - 1):
-            growth = .0        
-            first_derivative: FiniteDerivative = first_derivative_central
-            second_derivative: FiniteDerivative = second_derivative_central
-            if i == 0:
-                second_derivative = lambda c, i, d: 6*(c[i + 1] - c[i])/pow(d, 2)
-
-            if i != 0:
-                growth += 2*first_derivative(local_concentration, i, self.state.delta)/(i*self.state.delta)
-            growth += second_derivative(local_concentration, i, self.state.delta)
-            growth *= diffusion_coefficients[i] * self.timer.step()
-
-            if not self.diffusion_coefficient.is_static() and i != 0:
-                growth += self.timer.step()*\
-                    first_derivative(local_concentration, i, self.state.delta)*\
-                    first_derivative(diffusion_coefficients, i, self.state.delta)
-
-            result.append(growth + local_concentration[i])
-        result.append((4*result[-1]-result[-2])/3)
-        return result
+class SphericalResolver(_RadialResolver):
+    radial_power = 2
