@@ -29,7 +29,8 @@ from parameters.values import (
     stop_time,
     temperature,
     log_period,
-    file_prefix
+    file_prefix,
+    log_points
 )
 from resolver import (
     Resolver,
@@ -95,8 +96,7 @@ state = State(
     initial_destribution=initial_destribution
 )
 
-filename = '_'.join([
-    file_prefix,
+config = [
     f'T={temperature}',
     f'R={border_coordinate}',
     f'r1={inner_offset}',
@@ -105,9 +105,18 @@ filename = '_'.join([
     f'outer={outer_substance}',
     f'g={geometry.value}',
     f'dc={diffusion_coefficient_resolver_type.value}'
+]
+filename = '_'.join([
+    file_prefix,
+    *config,
 ])
 
-logger = FileLogger(period=log_period, filename=filename)
+logger = FileLogger(
+    period=log_period,
+    log_points=log_points,
+    filename=filename,
+    header='\t'.join(["" , *config])
+)
 
 match geometry:
     case Geometry.PLAIN:

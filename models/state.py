@@ -34,9 +34,3 @@ class State:
         
         self.concentration1 = list(map(lambda c: c*inner_substance.concentration, concentration1))
         self.concentration2 = list(map(lambda c: c*outer_substance.concentration, concentration2))
-
-    def __str__(self) -> str:
-        lines = ['\t'.join(["r", self.substance1.name.value, self.substance2.name.value])]
-        for index, [c1, c2] in enumerate(zip(self.concentration1, self.concentration2)):
-            lines.append('\t'.join([str(index*self.delta), str(c1), str(c2)]))
-        return '\n'.join(lines)

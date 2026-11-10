@@ -16,4 +16,5 @@ delta_time = 1e-5
 stop_time = 1e5
 
 log_period = 1e-3
+log_points = 100
 file_prefix='state'

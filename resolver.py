@@ -63,6 +63,8 @@ class Resolver:
         raise NotImplementedError()
 
     def run(self) -> None:
+        if len(self.state.concentration1) != len(self.state.concentration2):
+            raise ValueError("Concentration arrays must have equal lengths")
         while self.timer.next():
             self.logger.info(self.timer, self.state)
             concentrations = {
