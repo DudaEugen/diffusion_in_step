@@ -17,4 +17,4 @@ stop_time = 1e5
 
 log_period = 1e-3
 log_points = 100
-file_prefix='state'
+file_prefix='results/state'
