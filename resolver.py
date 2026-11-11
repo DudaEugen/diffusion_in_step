@@ -33,7 +33,6 @@ class Resolver:
         end: int,
     ) -> List[float]:
         concentration = concentrations[sub]
-        result = concentration.copy()
         node_count = len(concentration)
         coefficient_start = max(0, start - 1)
         coefficient_end = min(node_count - 1, end + 1)
@@ -46,23 +45,35 @@ class Resolver:
                 local_concentrations, sub
             )
 
-        def face_flux(left_index: int) -> float:
+        # Keep the outside face on each side as a one-cell halo.  Its
+        # concentrations remain unchanged, but its coefficient is needed to
+        # calculate the active endpoint's flux.
+        face_fluxes = []
+        first_face = start - 1
+        last_face = end
+        for left_index in range(first_face, last_face + 1):
             if left_index < 0 or left_index >= node_count - 1:
-                return 0.0
-            diffusion = self._harmonic_mean(
-                coefficients[left_index], coefficients[left_index + 1]
-            )
-            return (
-                diffusion
-                * (concentration[left_index + 1] - concentration[left_index])
-                / self.state.delta
-            )
+                face_fluxes.append(0.0)
+            else:
+                diffusion = self._harmonic_mean(
+                    coefficients[left_index], coefficients[left_index + 1]
+                )
+                face_fluxes.append(
+                    diffusion
+                    * (concentration[left_index + 1] - concentration[left_index])
+                    / self.state.delta
+                )
 
-        for index in range(start, end + 1):
-            result[index] += self.timer.step() * self._flux_divergence(
-                face_flux(index - 1), face_flux(index), index, node_count
+        new_values = []
+        for offset, index in enumerate(range(start, end + 1)):
+            new_values.append(
+                concentration[index]
+                + self.timer.step()
+                * self._flux_divergence(
+                    face_fluxes[offset], face_fluxes[offset + 1], index, node_count
+                )
             )
-        return result
+        return new_values
 
     @staticmethod
     def _harmonic_mean(left: float, right: float) -> float:
@@ -96,8 +107,8 @@ class Resolver:
             new_concentration2 = self._calculate_new_concentrations(
                 concentrations, self.state.substance2.name, active_start, active_end
             )
-            self.state.concentration1[:] = new_concentration1
-            self.state.concentration2[:] = new_concentration2
+            self.state.concentration1[active_start : active_end + 1] = new_concentration1
+            self.state.concentration2[active_start : active_end + 1] = new_concentration2
             self.logger.info(self.timer, self.state)
 
 

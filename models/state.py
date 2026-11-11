@@ -44,5 +44,7 @@ class State:
         concentration2.extend(initial_destribution.generate_reversed(self.delta, border_coordinate))
         concentration2.extend([1. for _ in range(node_count - len(concentration2))])
         
-        self.concentration1 = list(map(lambda c: c*inner_substance.concentration(temperature), concentration1))
-        self.concentration2 = list(map(lambda c: c*outer_substance.concentration(temperature), concentration2))
+        inner_concentration = inner_substance.concentration(temperature)
+        outer_concentration = outer_substance.concentration(temperature)
+        self.concentration1 = [c * inner_concentration for c in concentration1]
+        self.concentration2 = [c * outer_concentration for c in concentration2]

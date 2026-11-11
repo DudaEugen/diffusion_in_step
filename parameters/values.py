@@ -10,11 +10,11 @@ temperature = 800
 
 size = 2*border_coordinate
 
-delta_coordinate = 1e-9
-delta_time = 1e-6
+delta_coordinate = 1e-8
+delta_time = 1e-4
 
 stop_time = 1e12
 
-log_period = 1e3 * delta_time
+log_period = 1e4 * delta_time
 log_points = 100
 file_prefix='results/state'
