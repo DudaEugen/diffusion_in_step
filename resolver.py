@@ -26,56 +26,75 @@ class Resolver:
         self.logger = logger
 
     def _calculate_new_concentrations(
-        self, concentrations: Dict[SubstanceName, List[float]], sub: SubstanceName
+        self,
+        concentrations: Dict[SubstanceName, List[float]],
+        sub: SubstanceName,
+        start: int,
+        end: int,
     ) -> List[float]:
         concentration = concentrations[sub]
-        coefficients = [
-            self.diffusion_coefficient.calculate(
-                {name: values[i] for name, values in concentrations.items()}, sub
+        result = concentration.copy()
+        node_count = len(concentration)
+        coefficient_start = max(0, start - 1)
+        coefficient_end = min(node_count - 1, end + 1)
+        coefficients = {}
+        for index in range(coefficient_start, coefficient_end + 1):
+            local_concentrations = {
+                name: values[index] for name, values in concentrations.items()
+            }
+            coefficients[index] = self.diffusion_coefficient.calculate(
+                local_concentrations, sub
             )
-            for i in range(len(concentration))
-        ]
-        face_fluxes = self._face_fluxes(concentration, coefficients)
-        return [
-            value + self.timer.step() * self._flux_divergence(face_fluxes, i)
-            for i, value in enumerate(concentration)
-        ]
 
-    def _face_fluxes(self, concentration: List[float], coefficients: List[float]) -> List[float]:
-        delta = self.state.delta
-        return [
-            # Zero flux at the isolated boundaries.
-            0.0,
-            *(
-                self._harmonic_mean(coefficients[i], coefficients[i + 1])
-                * (concentration[i + 1] - concentration[i]) / delta
-                for i in range(len(concentration) - 1)
-            ),
-            0.0,
-        ]
+        def face_flux(left_index: int) -> float:
+            if left_index < 0 or left_index >= node_count - 1:
+                return 0.0
+            diffusion = self._harmonic_mean(
+                coefficients[left_index], coefficients[left_index + 1]
+            )
+            return (
+                diffusion
+                * (concentration[left_index + 1] - concentration[left_index])
+                / self.state.delta
+            )
+
+        for index in range(start, end + 1):
+            result[index] += self.timer.step() * self._flux_divergence(
+                face_flux(index - 1), face_flux(index), index, node_count
+            )
+        return result
 
     @staticmethod
     def _harmonic_mean(left: float, right: float) -> float:
         # Represents the combined diffusion resistance across a face.
         return 2 * left * right / (left + right)
 
-    def _flux_divergence(self, face_fluxes: List[float], index: int) -> float:
+    def _flux_divergence(
+        self, left_flux: float, right_flux: float, index: int, node_count: int
+    ) -> float:
         raise NotImplementedError()
 
     def run(self) -> None:
         if len(self.state.concentration1) != len(self.state.concentration2):
             raise ValueError("Concentration arrays must have equal lengths")
         self.logger.info(self.timer, self.state)
+        step_index = 0
         while self.timer.next():
+            step_index += 1
+            active_start = max(0, self.state.initial_active_start - step_index)
+            active_end = min(
+                len(self.state.concentration1) - 1,
+                self.state.initial_active_end + step_index,
+            )
             concentrations = {
                 self.state.substance1.name: self.state.concentration1,
                 self.state.substance2.name: self.state.concentration2,
             }
             new_concentration1 = self._calculate_new_concentrations(
-                concentrations, self.state.substance1.name
+                concentrations, self.state.substance1.name, active_start, active_end
             )
             new_concentration2 = self._calculate_new_concentrations(
-                concentrations, self.state.substance2.name
+                concentrations, self.state.substance2.name, active_start, active_end
             )
             self.state.concentration1[:] = new_concentration1
             self.state.concentration2[:] = new_concentration2
@@ -83,29 +102,33 @@ class Resolver:
 
 
 class PlainResolver(Resolver):
-    def _flux_divergence(self, face_fluxes: List[float], index: int) -> float:
+    def _flux_divergence(
+        self, left_flux: float, right_flux: float, index: int, node_count: int
+    ) -> float:
         delta = self.state.delta
         # Boundary nodes have half-width control volumes.
-        volume_width = delta / 2 if index in (0, len(face_fluxes) - 2) else delta
-        return (face_fluxes[index + 1] - face_fluxes[index]) / volume_width
+        volume_width = delta / 2 if index in (0, node_count - 1) else delta
+        return (right_flux - left_flux) / volume_width
 
 
 class _RadialResolver(Resolver):
     radial_power: int
 
-    def _flux_divergence(self, face_fluxes: List[float], index: int) -> float:
+    def _flux_divergence(
+        self, left_flux: float, right_flux: float, index: int, node_count: int
+    ) -> float:
         delta = self.state.delta
         radius = index * delta
         left_radius = max(0.0, radius - delta / 2)
         # The last node lies on the physical outer boundary, so its control
         # volume ends at that radius instead of extending half a step outward.
-        right_radius = radius if index == len(face_fluxes) - 2 else radius + delta / 2
+        right_radius = radius if index == node_count - 1 else radius + delta / 2
         power = self.radial_power
         shell_measure = right_radius ** (power + 1) - left_radius ** (power + 1)
         # Surface-area factors give the radial form of div(D grad(C)).
         return (power + 1) * (
-            right_radius**power * face_fluxes[index + 1]
-            - left_radius**power * face_fluxes[index]
+            right_radius**power * right_flux
+            - left_radius**power * left_flux
         ) / shell_measure
 
 

@@ -1,3 +1,4 @@
+import math
 from typing import List
 from models.diffusion_coefficient import DiffusionCoefficient
 from models.initial_destribution import InitialDestribution
@@ -9,6 +10,8 @@ class State:
     substance2: Substance
     concentration2: List[float]
     delta: float
+    initial_active_start: int
+    initial_active_end: int
 
     def __init__(
         self,
@@ -24,12 +27,20 @@ class State:
         self.substance2 = outer_substance
         self.delta = delta
 
+        self.initial_active_start = round(
+            (border_coordinate - initial_destribution.inner_offset) / delta
+        )
+        transition_intervals = math.floor(
+            (initial_destribution.inner_offset + initial_destribution.outer_offset) / delta
+        )
+        self.initial_active_end = min(node_count - 1, self.initial_active_start + transition_intervals)
+
         # Build complementary composition profiles, then convert fractions to number concentrations.
-        concentration1 = [1. for _ in range(round((border_coordinate - initial_destribution.inner_offset)/self.delta))]
+        concentration1 = [1. for _ in range(self.initial_active_start)]
         concentration1.extend(initial_destribution.generate(delta=self.delta, border_coordinate=border_coordinate))
         concentration1.extend([.0 for _ in range(node_count - len(concentration1))])
 
-        concentration2 = [.0 for _ in range(round((border_coordinate - initial_destribution.inner_offset)/self.delta))]
+        concentration2 = [.0 for _ in range(self.initial_active_start)]
         concentration2.extend(initial_destribution.generate_reversed(self.delta, border_coordinate))
         concentration2.extend([1. for _ in range(node_count - len(concentration2))])
         
