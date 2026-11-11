@@ -1,3 +1,4 @@
+import math
 from typing import List
 
 from models.state import State
@@ -11,7 +12,7 @@ class PeriodicLogger:
 
     def __init__(self, period: float, log_points: int):
         self._period = period
-        self._last_log_time = self._period
+        self._last_log_time = 0
         self._log_points = log_points
         self._sample_indices = []
 
@@ -19,7 +20,8 @@ class PeriodicLogger:
         pass
 
     def info(self, timer: Timer, state: State) -> None:
-        if not self._sample_indices:
+        is_first_call = not self._sample_indices
+        if is_first_call:
             node_count = len(state.concentration1)
             if len(state.concentration2) != node_count:
                 raise ValueError("Concentration arrays must have equal lengths")
@@ -35,7 +37,7 @@ class PeriodicLogger:
                     for i in range(self._log_points)
                 ]
             self._prepare(state)
-        if timer.time() - self._last_log_time > self._period:
+        if timer.time() - self._last_log_time > self._period or is_first_call:
             self._last_log_time = timer.time()
             self._log(state)
 
@@ -58,7 +60,7 @@ class FileLogger(PeriodicLogger):
 
     def _log(self, state: State):
         with open(f'{self._filename}.tsv', 'a') as f:
-             points1 = [state.concentration1[i] for i in self._sample_indices]
+             points1 = [math.ceil(state.concentration1[i]) for i in self._sample_indices]
              print(self._last_log_time, state.substance1, *points1, file=f, sep="\t", end="\n")
-             points2 = [state.concentration2[i] for i in self._sample_indices]
+             points2 = [math.ceil(state.concentration2[i]) for i in self._sample_indices]
              print(self._last_log_time, state.substance2, *points2, file=f, sep="\t", end="\n")

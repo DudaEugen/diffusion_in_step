@@ -4,8 +4,18 @@ from models.diffusion_coefficient import DiffusionCoefficient
 
 temperature = 300
 
-aluminium = Substance(name=SubstanceName.ALUMINIUM, density=2699, atomic_weight=27*1e-3)
-copper = Substance(name=SubstanceName.COPPER, density=8944, atomic_weight=64*1e-3)
+aluminium = Substance(
+    name=SubstanceName.ALUMINIUM,
+    atomic_weight=27*1e-3,
+    density_at_zero_celcius=2700,
+    volumetric_thermal_expansion=69e-6
+)
+copper = Substance(
+    name=SubstanceName.COPPER,
+    atomic_weight=64*1e-3,
+    density_at_zero_celcius=8960,
+    volumetric_thermal_expansion=51e-6
+)
 
 aluminum_self = DiffusionCoefficient(
     solute=SubstanceName.ALUMINIUM,

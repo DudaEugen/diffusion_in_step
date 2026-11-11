@@ -65,8 +65,8 @@ class Resolver:
     def run(self) -> None:
         if len(self.state.concentration1) != len(self.state.concentration2):
             raise ValueError("Concentration arrays must have equal lengths")
+        self.logger.info(self.timer, self.state)
         while self.timer.next():
-            self.logger.info(self.timer, self.state)
             concentrations = {
                 self.state.substance1.name: self.state.concentration1,
                 self.state.substance2.name: self.state.concentration2,
@@ -79,6 +79,7 @@ class Resolver:
             )
             self.state.concentration1[:] = new_concentration1
             self.state.concentration2[:] = new_concentration2
+            self.logger.info(self.timer, self.state)
 
 
 class PlainResolver(Resolver):

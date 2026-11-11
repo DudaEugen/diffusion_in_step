@@ -93,7 +93,8 @@ state = State(
     delta=delta_coordinate,
     node_count=math.floor(size/delta_coordinate) + 1,
     border_coordinate=border_coordinate,
-    initial_destribution=initial_destribution
+    initial_destribution=initial_destribution,
+    temperature=temperature
 )
 
 config = [
