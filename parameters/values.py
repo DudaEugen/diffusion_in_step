@@ -1,20 +1,21 @@
+from parameters.environment import setting
 from parameters.substances import aluminium, copper
 
-border_coordinate = 0.1e-3
-inner_offset = 1.1e-7
-outer_offset = 1e-7
+border_coordinate = setting("BORDER_COORDINATE", float)
+inner_offset = setting("INNER_OFFSET", float)
+outer_offset = setting("OUTER_OFFSET", float)
 inner_substance = aluminium
 outer_substance = copper
 
-temperature = 800
+temperature = setting("TEMPERATURE", float)
 
-size = 2*border_coordinate
+size = setting("SIZE_MULTIPLIER", float) * border_coordinate
 
-delta_coordinate = 1e-8
-delta_time = 1e-4
+delta_coordinate = setting("DELTA_COORDINATE", float)
+delta_time = setting("DELTA_TIME", float)
 
-stop_time = 1e12
+stop_time = setting("STOP_TIME", float)
 
-log_period = 1e4 * delta_time
-log_points = 100
-file_prefix='results/state'
+log_period = setting("LOG_PERIOD_STEPS", float) * delta_time
+log_points = setting("LOG_POINTS", int, default=None)
+file_prefix = setting("FILE_PREFIX", str)

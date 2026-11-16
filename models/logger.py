@@ -7,10 +7,10 @@ from models.timer import Timer
 class PeriodicLogger:
     _period: float
     _last_log_time: float
-    _log_points: int
+    _log_points: int | None
     _sample_indices: List[int]
 
-    def __init__(self, period: float, log_points: int):
+    def __init__(self, period: float, log_points: int | None):
         self._period = period
         self._last_log_time = 0
         self._log_points = log_points
@@ -25,16 +25,17 @@ class PeriodicLogger:
             node_count = len(state.concentration1)
             if len(state.concentration2) != node_count:
                 raise ValueError("Concentration arrays must have equal lengths")
-            if self._log_points > node_count:
+            log_points = node_count if self._log_points is None else self._log_points
+            if log_points > node_count:
                 raise ValueError(
                     f"log_points ({self._log_points}) exceeds node count ({node_count})"
                 )
-            if self._log_points == 1:
+            if log_points == 1:
                 self._sample_indices = [0]
             else:
                 self._sample_indices = [    
-                    round(i * (node_count - 1) / (self._log_points - 1))
-                    for i in range(self._log_points)
+                    round(i * (node_count - 1) / (log_points - 1))
+                    for i in range(log_points)
                 ]
             self._prepare(state)
         if timer.time() - self._last_log_time > self._period or is_first_call:
@@ -45,8 +46,8 @@ class PeriodicLogger:
         raise NotImplementedError()
 
 class FileLogger(PeriodicLogger):
-    def __init__(self, period: float, log_points: int, filename: str, header: str):
-        if log_points < 1:
+    def __init__(self, period: float, log_points: int | None, filename: str, header: str):
+        if log_points is not None and log_points < 1:
             raise ValueError("log_points must be at least 1")
         super().__init__(period, log_points)
         self._filename = filename
