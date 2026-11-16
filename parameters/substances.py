@@ -22,29 +22,29 @@ copper = Substance(
 )
 
 aluminum_self = DiffusionCoefficient(
-    solute=SubstanceName.ALUMINIUM,
-    solvent=SubstanceName.ALUMINIUM,
+    diffusing_substance=SubstanceName.ALUMINIUM,
+    host_substance=SubstanceName.ALUMINIUM,
     factor=setting("ALUMINIUM_SELF_FACTOR", float),
     activation_energy=setting("ALUMINIUM_SELF_ACTIVATION_ENERGY", float),
     temperature=reference_temperature
 )
 copper_self = DiffusionCoefficient(
-    solute=SubstanceName.COPPER,
-    solvent=SubstanceName.COPPER,
+    diffusing_substance=SubstanceName.COPPER,
+    host_substance=SubstanceName.COPPER,
     factor=setting("COPPER_SELF_FACTOR", float),
     activation_energy=setting("COPPER_SELF_ACTIVATION_ENERGY", float),
     temperature=reference_temperature
 )
 aluminum_in_copper = DiffusionCoefficient(
-    solute=SubstanceName.ALUMINIUM,
-    solvent=SubstanceName.COPPER,
+    diffusing_substance=SubstanceName.ALUMINIUM,
+    host_substance=SubstanceName.COPPER,
     factor=setting("ALUMINIUM_IN_COPPER_FACTOR", float),
     activation_energy=setting("ALUMINIUM_IN_COPPER_ACTIVATION_ENERGY", float),
     temperature=reference_temperature
 )
 copper_in_aluminum = DiffusionCoefficient(
-    solute=SubstanceName.COPPER,
-    solvent=SubstanceName.ALUMINIUM,
+    diffusing_substance=SubstanceName.COPPER,
+    host_substance=SubstanceName.ALUMINIUM,
     factor=setting("COPPER_IN_ALUMINIUM_FACTOR", float),
     activation_energy=setting("COPPER_IN_ALUMINIUM_ACTIVATION_ENERGY", float),
     temperature=reference_temperature

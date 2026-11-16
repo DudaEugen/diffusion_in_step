@@ -6,14 +6,14 @@ universal_gas_constant = 8.314
 class DiffusionCoefficient:
     def __init__(
         self,
-        solvent: SubstanceName,
-        solute: SubstanceName,
+        host_substance: SubstanceName,
+        diffusing_substance: SubstanceName,
         factor: float,
         activation_energy: float,
         temperature: float,
     ):
-        self.solvent = solvent
-        self.solute = solute
+        self.host_substance = host_substance
+        self.diffusing_substance = diffusing_substance
         self._factor = factor
         self._activation_energy = activation_energy
         self._temperature = temperature

@@ -10,9 +10,9 @@ class EffectiveDiffusionCoefficient:
         self._coefficients = {}
         for coefficient in coefficients:
             coefficient.set_temperature(temperature)
-            if coefficient.solute not in self._coefficients:
-                self._coefficients[coefficient.solute] = {}
-            self._coefficients[coefficient.solute][coefficient.solvent] = coefficient.value
+            if coefficient.diffusing_substance not in self._coefficients:
+                self._coefficients[coefficient.diffusing_substance] = {}
+            self._coefficients[coefficient.diffusing_substance][coefficient.host_substance] = coefficient.value
 
     def calculate(self, concentrations: Dict[SubstanceName, float], substance: SubstanceName) -> float:
         raise NotImplementedError()
