@@ -84,7 +84,7 @@ Atomic weights are defined directly in `parameters/substances.py` in kg/mol. All
 
 ## Output
 
-Output filenames include the prefix, temperature, interface position, offsets, substance names, geometry, and coefficient method. Each TSV file contains:
+Output filenames include the prefix, temperature, interface position, offsets, spatial step (`dr`), time step (`dt`), substance names, geometry, and coefficient method. Each TSV file contains:
 
 1. A configuration header.
 2. A header with the sampled spatial coordinates.
