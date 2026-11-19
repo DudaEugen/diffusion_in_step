@@ -1,4 +1,3 @@
-import math
 from typing import List
 
 from models.state import State
@@ -61,7 +60,7 @@ class FileLogger(PeriodicLogger):
 
     def _log(self, state: State):
         with open(f'{self._filename}.tsv', 'a') as f:
-             points1 = [math.ceil(state.concentration1[i]) for i in self._sample_indices]
+             points1 = [state.concentration1[i] for i in self._sample_indices]
              print(self._last_log_time, state.substance1, *points1, file=f, sep="\t", end="\n")
-             points2 = [math.ceil(state.concentration2[i]) for i in self._sample_indices]
+             points2 = [state.concentration2[i] for i in self._sample_indices]
              print(self._last_log_time, state.substance2, *points2, file=f, sep="\t", end="\n")
