@@ -1,4 +1,3 @@
-import math
 from typing import Callable, List
 
 class InitialDestribution:
@@ -27,45 +26,36 @@ class InitialDestribution:
             return sum(map(lambda c, i: c*coord**i, coef, range(len(coef))))
         return implementation
 
-    def _calculate_destribution(
-        self,
-        delta: float, 
-        border_coordinate: float,
-        inner_offset: float,
-        outer_offset: float
-    ):
-        coef = self._calculate_coefficients(
-            border_coordinate=border_coordinate,
-            inner_offset=inner_offset,
-            outer_offset=outer_offset
-        )
-        nodes_count = math.floor((inner_offset + outer_offset) / delta)
-        return list(map(self._value(coef), [delta*i for i in range(nodes_count + 1)]))
-
     def generate(
         self,
+        node_count: int,
         delta: float,
         border_coordinate: float,
+        reversed: bool = False,
     ) -> List[float]:
-        return self._calculate_destribution(
-            delta=delta, 
+        """Fill the whole grid using each node's physical coordinate."""
+        start = border_coordinate - self.inner_offset
+        end = border_coordinate + self.outer_offset
+        coefficients = self._calculate_coefficients(
             border_coordinate=border_coordinate,
             inner_offset=self.inner_offset,
             outer_offset=self.outer_offset
         )
+        polynomial = self._value(coefficients)
+        result = []
+        for index in range(node_count):
+            coordinate = index * delta
+            if coordinate <= start:
+                value = 0.0 if reversed else 1.0
+            elif coordinate >= end:
+                value = 1.0 if reversed else 0.0
+            else:
+                value = polynomial(coordinate - start)
+                if reversed:
+                    value = 1.0 - value
+            result.append(value)
+        return result
 
-    def generate_reversed(
-        self,
-        delta: float,
-        border_coordinate: float,
-    ) -> List[float]:
-        return reversed(self._calculate_destribution(
-            delta=delta, 
-            border_coordinate=border_coordinate,
-            inner_offset=self.outer_offset,
-            outer_offset=self.inner_offset
-        ))
-    
 
 class PlainDestribution(InitialDestribution):
     def _calculate_coefficients(

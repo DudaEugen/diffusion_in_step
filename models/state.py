@@ -27,23 +27,14 @@ class State:
         self.substance2 = outer_substance
         self.delta = delta
 
-        self.initial_active_start = round(
-            (border_coordinate - initial_destribution.inner_offset) / delta
-        )
-        transition_intervals = math.floor(
-            (initial_destribution.inner_offset + initial_destribution.outer_offset) / delta
-        )
-        self.initial_active_end = min(node_count - 1, self.initial_active_start + transition_intervals)
+        start = border_coordinate - initial_destribution.inner_offset
+        end = border_coordinate + initial_destribution.outer_offset
+        self.initial_active_start = max(0, min(node_count - 1, math.floor(start / delta)))
+        self.initial_active_end = max(0, min(node_count - 1, math.ceil(end / delta)))
 
-        # Build complementary composition profiles, then convert fractions to number concentrations.
-        concentration1 = [1. for _ in range(self.initial_active_start)]
-        concentration1.extend(initial_destribution.generate(delta=self.delta, border_coordinate=border_coordinate))
-        concentration1.extend([.0 for _ in range(node_count - len(concentration1))])
+        concentration1 = initial_destribution.generate(node_count, delta, border_coordinate)
+        concentration2 = initial_destribution.generate(node_count, delta, border_coordinate, reversed=True)
 
-        concentration2 = [.0 for _ in range(self.initial_active_start)]
-        concentration2.extend(initial_destribution.generate_reversed(self.delta, border_coordinate))
-        concentration2.extend([1. for _ in range(node_count - len(concentration2))])
-        
         inner_concentration = inner_substance.concentration(temperature)
         outer_concentration = outer_substance.concentration(temperature)
         self.concentration1 = [c * inner_concentration for c in concentration1]
